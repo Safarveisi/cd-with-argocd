@@ -1,1 +1,1 @@
-# cd-with-argocd
+# CI/CD pipeline using GitHub actions and ArgoCD
