@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: alpine-demo-config
 data:
-  message: "Hello from Alpine + Argo CD!"
+  message: "Hello World!"
 ---
 apiVersion: apps/v1
 kind: Deployment
