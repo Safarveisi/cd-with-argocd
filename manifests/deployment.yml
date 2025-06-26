@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alpine-demo
+  labels:
+    app: alpine-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alpine-demo
+  template:
+    metadata:
+      labels:
+        app: alpine-demo
+    spec:
+      containers:
+        - name: alpine
+          image: alpine:3.19
+          command: ["/bin/sh", "-c"]
+          args: ["echo 'Hello from Alpine demo!'; sleep 3600"]
+          resources:
+            limits:
+              memory: "64Mi"
+              cpu: "50m"
+            requests:
+              memory: "32Mi"
+              cpu: "10m"
