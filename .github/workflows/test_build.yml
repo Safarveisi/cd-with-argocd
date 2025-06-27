@@ -5,10 +5,12 @@ on:
       - master
     paths-ignore:
         - '**/*.png'
+        - '**/*.md'
   pull_request:
     types: [opened, synchronize]
     paths-ignore:
         - '**/*.png'
+        - '**/*.md'
 
 jobs:
     linting-and-static-code-check:
