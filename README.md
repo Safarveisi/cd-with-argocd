@@ -1,6 +1,6 @@
 ## CI/CD pipeline using GitHub Actions and Argocd
 
-#### Workflow 
+#### Workflow
 ![CD with Argocd](./argocd.png)
 
 #### Successful deployment
