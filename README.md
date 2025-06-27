@@ -13,7 +13,7 @@ To deploy an Argo CD application, apply the manifest file to your Kubernetes clu
 kubectl apply -f argocd-application.yml
 ```
 
-Argo CD continuously monitors the master branch and automatically updates the Kubernetes deployments based on the manifest files located in the manifests directory. Continuous integration is handled via GitHub Actions. The typical workflow is as follows:
+Argo CD continuously monitors the master branch and automatically updates the Kubernetes deployments based on the manifest files located in the `manifests` directory. Continuous integration is handled via GitHub Actions. The typical workflow is as follows:
 
 1. Create a new branch.
 2. Modify the necessary files.
