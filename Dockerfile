@@ -10,7 +10,7 @@ RUN addgroup -g 10001 appgroup && adduser -u 10001 -S appuser -G appgroup
 
 # Copy files
 COPY entrypoint.sh .
-COPY main.py .
+COPY app/ app/
 
 # Permissions
 RUN chmod +x entrypoint.sh && \
