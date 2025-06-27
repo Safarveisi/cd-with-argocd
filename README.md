@@ -17,6 +17,6 @@ Argo CD continuously monitors the master branch and automatically updates the Ku
 
 1. Create a new branch.
 2. Modify the necessary files.
-3. Update the version in `pyproject.toml`.
+3. Update the version in `pyproject.toml` (`version = "x.x.x"`).
 4. Commit and push the changes to the remote repository.
 5. Open a pull request (PR) to merge the changes into the `master` branch.
