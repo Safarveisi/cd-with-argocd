@@ -35,7 +35,7 @@ spec:
                   name: alpine-demo-config
                   key: STARTUP_MESSAGE
             - name: SLEEP_DURATION
-              value: "3600"
+              value: "7200"
           resources:
             requests:
               cpu: "10m"
