@@ -1,17 +1,20 @@
-FROM alpine:3.19
+FROM python:3.12-alpine
 
 ENV APP_HOME=/app \
     SLEEP_DURATION=3600
 
 WORKDIR $APP_HOME
 
+# Add non-root user
 RUN addgroup -g 10001 appgroup && adduser -u 10001 -S appuser -G appgroup
 
+# Copy files
 COPY entrypoint.sh .
+COPY main.py .
 
-RUN chmod +x entrypoint.sh
-
-RUN chown -R appuser:appgroup $APP_HOME
+# Permissions
+RUN chmod +x entrypoint.sh && \
+    chown -R appuser:appgroup $APP_HOME
 
 USER appuser
 
