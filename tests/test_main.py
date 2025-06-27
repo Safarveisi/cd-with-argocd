@@ -32,9 +32,6 @@ class TestMain(unittest.TestCase):
             normalize_vector([0, 0])
 
 
-# Optional: Pytest-style tests for variety
-
-
 @pytest.mark.parametrize("n,expected", [(2, True), (4, False), (17, True)])
 def test_is_prime_param(n, expected):
     assert is_prime(n) == expected
