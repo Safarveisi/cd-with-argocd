@@ -6,7 +6,7 @@
 #### Successful deployment
 ![Successful deployment](./successful_deployment.png)
 
-### Usage
+#### Usage
 To deploy an Argo CD application, apply the manifest file to your Kubernetes cluster:
 
 ```bash
