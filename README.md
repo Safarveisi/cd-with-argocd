@@ -19,7 +19,7 @@ kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}
 
 Use the external ip of the load balander to access the UI.
 
-Argo CD continuously monitors the `master` branch and automatically updates the Kubernetes deployments based on the manifest files located in the `manifests` directory.
+Argo CD continuously monitors the `master` branch and automatically updates the Kubernetes deployments based on the manifest files located in the `manifests-argocd` directory.
 
 ##### Successful deployment
 ![Successful deployment](./successful_deployment.png)
