@@ -1,0 +1,48 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: http-template-
+  namespace: playground
+  labels:
+    workflows.argoproj.io/test: "true"
+  annotations:
+    workflows.argoproj.io/description: |
+    workflows.argoproj.io/version: '>= 3.2.0'
+spec:
+  serviceAccountName: playground-sa
+  entrypoint: main
+  templates:
+    - name: main
+      dag:
+        tasks:
+          - name: fetch-user
+            template: http
+            arguments:
+              parameters: [{name: url, value: "https://jsonplaceholder.typicode.com/users/1"}]
+
+          - name: show-user-name
+            template: print
+            arguments:
+              parameters:
+                - name: body
+                  value: "{{tasks.fetch-user.outputs.result}}"
+            dependencies: [ fetch-user ]
+
+    - name: http
+      inputs:
+        parameters:
+          - name: url
+      http:
+       timeoutSeconds: 20
+       url: "{{inputs.parameters.url}}"
+       method: "GET"
+
+    - name: print
+      inputs:
+        parameters:
+          - name: body
+      script:
+        image: alpine:latest
+        command: [sh, -c]
+        source: |
+          echo "{{ inputs.parameters.body }}"

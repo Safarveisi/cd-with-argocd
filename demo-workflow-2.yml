@@ -2,6 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: dag-conditional-parameter-
+  namespace: playground
   labels:
     workflows.argoproj.io/test: "true"
   annotations:
@@ -14,6 +15,7 @@ metadata:
       executed taks's output result.
     workflows.argoproj.io/version: '>= 3.1.0'
 spec:
+  serviceAccountName: playground-sa
   entrypoint: main
   templates:
     - name: main
@@ -44,7 +46,7 @@ spec:
           print("heads" if random.randint(0,1) == 0 else "tails")
 
     - name: heads
-      script:
+      script: # Template
         image: python:alpine3.6
         command: [python]
         source: |
