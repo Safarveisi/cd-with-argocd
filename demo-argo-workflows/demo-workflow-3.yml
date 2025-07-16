@@ -18,23 +18,33 @@ spec:
           - name: fetch-user
             template: http
             arguments:
-              parameters: [{name: url, value: "https://jsonplaceholder.typicode.com/users/1"}]
+              parameters: [{name: userId, value: "3"}]
 
           - name: show-user-name
             template: print
             arguments:
               parameters:
                 - name: body
-                  value: "{{tasks.fetch-user.outputs.result}}"
+                  value: "{{ tasks.fetch-user.outputs.result }}"
+            dependencies: [ fetch-user ]
+
+          - name: extract-other-attributes
+            template: extract
+            arguments:
+              parameters:
+                - name: field
+                  value: "username"
+                - name: body
+                  value: "{{ tasks.fetch-user.outputs.result }}"
             dependencies: [ fetch-user ]
 
     - name: http
       inputs:
         parameters:
-          - name: url
+          - name: userId
       http:
        timeoutSeconds: 20
-       url: "{{inputs.parameters.url}}"
+       url: "https://jsonplaceholder.typicode.com/users/{{ inputs.parameters.userId }}"
        method: "GET"
 
     - name: print
@@ -46,3 +56,40 @@ spec:
         command: [sh, -c]
         source: |
           echo "{{ inputs.parameters.body }}"
+
+    - name: extract
+      inputs:
+        parameters:
+          - name: field
+          - name: body
+      outputs:
+        artifacts:
+          - name: username
+            path: /tmp/username.txt
+            s3:
+              endpoint: s3-de-central.profitbricks.com:443
+              bucket: customerintelligence
+              region: eu-central-1
+              key: argo/username.txt
+              accessKeySecret:
+                name: s3-credentials
+                key: accessKey
+              secretKeySecret:
+                name: s3-credentials
+                key: secretKey
+            archive:
+              none: {}
+      script:
+        image: python:3.11-alpine
+        command:
+          - python
+        source: |-
+          import re, json
+          fixed = re.sub(
+              r'(?<=\{|,|\n)\s*([A-Za-z_]\w*)\s*:',
+              r'"\1":', '''{{ inputs.parameters.body }}'''
+            )
+          obj = json.loads(fixed)
+
+          with open("/tmp/username.txt", "w", encoding="utf-8") as f:
+            f.write(obj['{{ inputs.parameters.field }}'])
