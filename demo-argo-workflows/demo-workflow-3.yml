@@ -18,7 +18,7 @@ spec:
           - name: fetch-user
             template: http
             arguments:
-              parameters: [{name: userId, value: "3"}]
+              parameters: [{name: userId, value: "10"}]
 
           - name: show-user-name
             template: print
@@ -33,7 +33,7 @@ spec:
             arguments:
               parameters:
                 - name: field
-                  value: "username"
+                  value: "title"
                 - name: body
                   value: "{{ tasks.fetch-user.outputs.result }}"
             dependencies: [ fetch-user ]
@@ -64,13 +64,13 @@ spec:
           - name: body
       outputs:
         artifacts:
-          - name: username
-            path: /tmp/username.txt
+          - name: field-file
+            path: /tmp/{{ inputs.parameters.field }}.txt
             s3:
               endpoint: s3-de-central.profitbricks.com:443
               bucket: customerintelligence
               region: eu-central-1
-              key: argo/username.txt
+              key: argo/{{ inputs.parameters.field }}.txt
               accessKeySecret:
                 name: s3-credentials
                 key: accessKey
@@ -87,9 +87,15 @@ spec:
           import re, json
           fixed = re.sub(
               r'(?<=\{|,|\n)\s*([A-Za-z_]\w*)\s*:',
-              r'"\1":', '''{{ inputs.parameters.body }}'''
+              r'"\1":',
+              '''{{ inputs.parameters.body }}'''
             )
+          # Turn the string into a dict
           obj = json.loads(fixed)
-
-          with open("/tmp/username.txt", "w", encoding="utf-8") as f:
-            f.write(obj['{{ inputs.parameters.field }}'])
+          # Write the target attribute to a file
+          try:
+            with open("/tmp/{{ inputs.parameters.field }}.txt", "w", encoding="utf-8") as f:
+              f.write(obj['{{ inputs.parameters.field }}'])
+          except Exception:
+            with open("/tmp/{{ inputs.parameters.field }}.txt", "w", encoding="utf-8") as f:
+              f.write("write failed!")
