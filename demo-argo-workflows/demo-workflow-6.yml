@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: volumes-pvc-
+  namespace: playground
+spec:
+  entrypoint: volumes-pvc-example
+  serviceAccountName: playground-sa
+  volumes:
+    - name: workdir
+      persistentVolumeClaim:
+        claimName: argo-workflows-pvc
+  templates:
+  - name: volumes-pvc-example
+    steps:
+    - - name: generate
+        template: hello-world-to-file
+    - - name: print
+        template: print-message-from-file
+
+  - name: hello-world-to-file
+    container:
+      image: busybox
+      command: [sh, -c]
+      args: ["echo generating message in volume; echo hello world | tee /mnt/vol/hello_world.txt"]
+      volumeMounts:
+      - name: workdir
+        mountPath: /mnt/vol
+
+  - name: print-message-from-file
+    container:
+      image: alpine:latest
+      command: [sh, -c]
+      args: ["echo getting message from volume; find /mnt/vol; cat /mnt/vol/hello_world.txt"]
+      volumeMounts:
+      - name: workdir
+        mountPath: /mnt/vol

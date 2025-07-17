@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: argo-workflows-pvc
+  namespace: playground
+spec:
+  storageClassName: "ionos-enterprise-ssd"
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: argo-workflows-pv
+  namespace: playground
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes: ["ReadWriteOnce"]
+  volumeMode: Filesystem
+  storageClassName: "ionos-enterprise-ssd"
+  persistentVolumeReclaimPolicy: Delete
+  hostPath:
+    path: /mnt/argo-workflows
+    type: DirectoryOrCreate
+  claimRef:                      # pre‑bind to that exact PVC
+    namespace: playground
+    name: argo-workflows-pvc
