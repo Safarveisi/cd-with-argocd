@@ -1,3 +1,4 @@
+# Usage of different workflow templates (e.g., script, http) and s3 artifacts
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
