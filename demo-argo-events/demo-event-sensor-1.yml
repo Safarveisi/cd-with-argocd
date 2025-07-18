@@ -22,6 +22,12 @@ spec:
               metadata:
                 generateName: webhook-
               spec:
+                arguments:
+                  parameters:
+                  - name: message
+                    value: hello world
+                  - name: ttl
+                    value: 30s
                 entrypoint: print
                 templates:
                 - name: print
@@ -31,13 +37,13 @@ spec:
                         arguments:
                           parameters:
                           - name: message
-                            value: hello world
+                            value: "{{workflow.parameters.message}}"
                     - - name: print-ttl-body
                         template: print-ttl
                         arguments:
                           parameters:
                           - name: ttl
-                            value: 30s
+                            value: "{{workflow.parameters.ttl}}"
                 - name: print-message
                   inputs:
                     parameters:
@@ -58,8 +64,8 @@ spec:
             - src:
                 dependencyName: test-dep
                 dataKey: body.message
-              dest: spec.templates.0.steps.0.0.arguments.parameters.0.value
+              dest: spec.arguments.parameters.0.value
             - src:
                 dependencyName: test-dep
                 dataKey: body.ttl
-              dest: spec.templates.0.steps.1.0.arguments.parameters.0.value
+              dest: spec.arguments.parameters.1.value
