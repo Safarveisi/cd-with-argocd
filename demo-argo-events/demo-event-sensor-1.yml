@@ -22,14 +22,22 @@ spec:
               metadata:
                 generateName: webhook-
               spec:
-                entrypoint: print-ttl
-                arguments:
-                  parameters:
-                  - name: message
-                    value: hello world
-                  - name: ttl
-                    value: 30s
+                entrypoint: print
                 templates:
+                - name: print
+                  steps:
+                    - - name: print-body-message
+                        template: print-message
+                        arguments:
+                          parameters:
+                          - name: message
+                            value: hello world
+                    - - name: print-ttl-body
+                        template: print-ttl
+                        arguments:
+                          parameters:
+                          - name: ttl
+                            value: 30s
                 - name: print-message
                   inputs:
                     parameters:
@@ -37,7 +45,7 @@ spec:
                   container:
                     image: alpine:latest
                     command: [sh, -c]
-                    args: ["echo {{inputs.parameters.message}}"]
+                    args: ["echo 'The message is: {{inputs.parameters.message}}'"]
                 - name: print-ttl
                   inputs:
                     parameters:
@@ -50,8 +58,8 @@ spec:
             - src:
                 dependencyName: test-dep
                 dataKey: body.message
-              dest: spec.arguments.parameters.0.value
+              dest: spec.templates.0.steps.0.0.arguments.parameters.0.value
             - src:
                 dependencyName: test-dep
                 dataKey: body.ttl
-              dest: spec.arguments.parameters.1.value
+              dest: spec.templates.0.steps.1.0.arguments.parameters.0.value
