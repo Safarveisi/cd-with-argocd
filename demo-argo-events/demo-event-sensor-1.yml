@@ -44,12 +44,21 @@ spec:
                           parameters:
                           - name: ttl
                             value: "{{workflow.parameters.ttl}}"
+                    - - name: print-all-body
+                        template: print-both
+                        arguments:
+                          parameters:
+                            - name: message
+                              value: "{{workflow.parameters.message}}"
+                            - name: ttl
+                              value: "{{workflow.parameters.ttl}}"
                 - name: print-message
                   inputs:
                     parameters:
                     - name: message
                   container:
                     image: alpine:latest
+                    imagePullPolicy: IfNotPresent
                     command: [sh, -c]
                     args: ["echo 'The message is: {{inputs.parameters.message}}'"]
                 - name: print-ttl
@@ -58,8 +67,22 @@ spec:
                      - name: ttl
                   container:
                     image: alpine:latest
+                    imagePullPolicy: IfNotPresent
                     command: [sh, -c]
                     args: ["echo 'This message lives for {{inputs.parameters.ttl}}'"]
+                - name: print-both
+                  inputs:
+                    parameters:
+                      - name: message
+                      - name: ttl
+                  script:
+                    image: python:3.11-alpine
+                    imagePullPolicy: IfNotPresent
+                    command: [python]
+                    source: |-
+                      print("Printing all attributes ...")
+                      print("The message is: {{inputs.parameters.message}}")
+                      print("The ttl is: {{inputs.parameters.ttl}}")
           parameters:
             - src:
                 dependencyName: test-dep
