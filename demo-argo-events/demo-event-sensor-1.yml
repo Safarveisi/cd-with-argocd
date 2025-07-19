@@ -87,6 +87,11 @@ spec:
                         print("That was a hooky message.")
                       else:
                         print("The hooky message is not there yet.")
+                    env:
+                      - name: PYTHONUNBUFFERED
+                        value: '1'
+                      - name: PYTHONDONTWRITEBYTECODE
+                        value: '1'
           parameters:
             - src:
                 dependencyName: test-dep

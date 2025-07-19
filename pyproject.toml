@@ -11,6 +11,11 @@ requires-python = ">=3.12"
 dependencies = [
 ]
 
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
