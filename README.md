@@ -33,3 +33,13 @@ Continuous integration is handled via GitHub Actions. The typical workflow is as
 3. Update the version in `pyproject.toml` (`version = "x.x.x"`).
 4. Commit and push the changes to the remote repository.
 5. Open a pull request (PR) to merge the changes into the `master` branch.
+
+## Extra Material
+
+### Argo Events and Workflows
+
+Think of this section as the “cherry on top” of the repository: a focused exploration of how [Argo Events](https://argoproj.github.io/argo-events/) integrate with [Argo Workflows](https://argoproj.github.io/workflows/). The following diagram walks through a representative use case.
+
+![Argo Events use case](./ago-event-and-workflow.png)
+
+Please also see `/demo-argo-events/demo-event-sensor-1.yml` for a minimal running example.
