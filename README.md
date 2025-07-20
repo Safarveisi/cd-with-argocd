@@ -44,7 +44,7 @@ Think of this section as the “cherry on top” of the repository: a focused ex
 
 Please also see `/demo-argo-events/demo-event-sensor-1.yml` for a minimal running example for an Argo event. In summary:
 
-1. Event Arrival: A webhook event (example) hits the EventSource; Sensor dependency test-dep is satisfied.
+1. Event Arrival: A webhook event (see `/demo-argo-events/job-send-webhook.yml`) hits the EventSource; Sensor dependency test-dep is satisfied.
 
 2. Parameter Extraction: Sensor reads body.message and body.ttl from the event payload.
 
