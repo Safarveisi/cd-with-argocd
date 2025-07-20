@@ -1,0 +1,5 @@
+[allowlist]
+  description = "Ignore known false positives"
+
+  [[allowlist.files]]
+    path = "manifests-argo-workflows/s3_sealed_secret.yml"

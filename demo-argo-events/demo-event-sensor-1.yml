@@ -1,0 +1,103 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: webhook
+  namespace: argo-events
+spec:
+  template:
+    serviceAccountName: operate-workflow-sa
+  dependencies:
+    - name: test-dep
+      eventSourceName: webhook
+      eventName: example
+  triggers:
+    - template:
+        name: webhook-workflow-trigger
+        k8s:
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: webhook-
+              spec:
+                arguments:
+                  parameters:
+                  - name: message
+                    value: hello world
+                  - name: ttl
+                    value: 30s
+                entrypoint: print
+                templates:
+                - name: print
+                  steps:
+                    - - name: print-body-message
+                        template: print-message
+                        arguments:
+                          parameters:
+                          - name: message
+                            value: "{{workflow.parameters.message}}"
+                    - - name: print-ttl-body
+                        template: print-ttl
+                        arguments:
+                          parameters:
+                          - name: ttl
+                            value: "{{workflow.parameters.ttl}}"
+                    - - name: print-all-body
+                        template: print-both
+                        arguments:
+                          parameters:
+                            - name: message
+                              value: "{{workflow.parameters.message}}"
+                            - name: ttl
+                              value: "{{workflow.parameters.ttl}}"
+                - name: print-message
+                  inputs:
+                    parameters:
+                    - name: message
+                  container:
+                    image: alpine:latest
+                    imagePullPolicy: IfNotPresent
+                    command: [sh, -c]
+                    args: ["echo 'The message is: {{inputs.parameters.message}}'"]
+                - name: print-ttl
+                  inputs:
+                    parameters:
+                     - name: ttl
+                  container:
+                    image: alpine:latest
+                    imagePullPolicy: IfNotPresent
+                    command: [sh, -c]
+                    args: ["echo 'This message lives for {{inputs.parameters.ttl}}'"]
+                - name: print-both
+                  inputs:
+                    parameters:
+                      - name: message
+                      - name: ttl
+                  script:
+                    image: python:3.11-alpine
+                    imagePullPolicy: IfNotPresent
+                    command: [python]
+                    source: |-
+                      print("Printing all attributes ...")
+                      print("The message is: {{inputs.parameters.message}}.")
+                      print("The ttl is: {{inputs.parameters.ttl}}.")
+                      if "hook" in "{{inputs.parameters.message}}":
+                        print("That was a hooky message.")
+                      else:
+                        print("The hooky message is not there yet.")
+                    env:
+                      - name: PYTHONUNBUFFERED
+                        value: '1'
+                      - name: PYTHONDONTWRITEBYTECODE
+                        value: '1'
+          parameters:
+            - src:
+                dependencyName: test-dep
+                dataKey: body.message
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: test-dep
+                dataKey: body.ttl
+              dest: spec.arguments.parameters.1.value

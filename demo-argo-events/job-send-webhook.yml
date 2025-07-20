@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: send-webhook
+  namespace: argo-events
+spec:
+  backoffLimit: 0        # don't retry on failure
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: curl
+        image: curlimages/curl:8.7.1    # small image with curl installed
+        args:
+        - /bin/sh
+        - -c
+        - |
+          set -euo pipefail
+          echo "Sending webhook event..."
+          curl -sS -X POST \
+               -H 'Content-Type: application/json' \
+               -d '{"message":"this is my first webhook","ttl":"60s"}' \
+               http://webhook-eventsource-svc:12000/example
+          echo
+          echo "Webhook sent."

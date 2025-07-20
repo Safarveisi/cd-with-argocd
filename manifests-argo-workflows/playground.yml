@@ -1,0 +1,140 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: playground
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: playground-sa
+  namespace: playground
+secrets:
+- apiVersion: v1
+  kind: Secret
+  name: playground-sa-token
+  namespace: playground
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: playground-sa-token
+  namespace: playground
+  annotations:
+    kubernetes.io/service-account.name: playground-sa
+type: kubernetes.io/service-account-token
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: playground-rb
+  namespace: playground
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+subjects:
+- kind: ServiceAccount
+  name: playground-sa
+  namespace: playground
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: patch-workflowtasksets
+  namespace: playground
+rules:
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflowtasksets/status
+  # required to GC the artifacts
+  - workflowartifactgctasks
+  - workflowartifactgctasks/status
+  verbs:
+  - get
+  - list
+  - watch
+  - patch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: playground-rb-argo-1
+  namespace: playground
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: patch-workflowtasksets
+subjects:
+- kind: ServiceAccount
+  name: playground-sa
+  namespace: playground
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: patch-workflowtaskresults
+  namespace: playground
+rules:
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflowtaskresults
+  verbs:
+  - get
+  - list
+  - watch
+  - patch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: playground-rb-argo-2
+  namespace: playground
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: patch-workflowtaskresults
+subjects:
+- kind: ServiceAccount
+  name: playground-sa
+  namespace: playground
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: read-secret-cr
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+  resourceNames:
+  - argo-workflows-agent-ca-certificates
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: argo-read-secret
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: read-secret-cr
+subjects:
+- kind: ServiceAccount
+  name: argo
+  namespace: argo

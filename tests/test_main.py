@@ -1,6 +1,8 @@
-import pytest
 import unittest
-from app.main import is_prime, fibonacci, normalize_vector
+
+import pytest
+
+from app.main import fibonacci, is_prime, normalize_vector
 
 
 class TestMain(unittest.TestCase):

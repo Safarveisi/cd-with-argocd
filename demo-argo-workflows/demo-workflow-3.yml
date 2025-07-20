@@ -1,0 +1,102 @@
+# Usage of different workflow templates (e.g., script, http) and s3 artifacts
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: http-template-
+  namespace: playground
+  labels:
+    workflows.argoproj.io/test: "true"
+  annotations:
+    workflows.argoproj.io/description: |
+    workflows.argoproj.io/version: '>= 3.2.0'
+spec:
+  serviceAccountName: playground-sa
+  entrypoint: main
+  templates:
+    - name: main
+      dag:
+        tasks:
+          - name: fetch-user
+            template: http
+            arguments:
+              parameters: [{name: userId, value: "10"}]
+
+          - name: show-user-name
+            template: print
+            arguments:
+              parameters:
+                - name: body
+                  value: "{{ tasks.fetch-user.outputs.result }}"
+            dependencies: [ fetch-user ]
+
+          - name: extract-other-attributes
+            template: extract
+            arguments:
+              parameters:
+                - name: field
+                  value: "title"
+                - name: body
+                  value: "{{ tasks.fetch-user.outputs.result }}"
+            dependencies: [ fetch-user ]
+
+    - name: http
+      inputs:
+        parameters:
+          - name: userId
+      http:
+       timeoutSeconds: 20
+       url: "https://jsonplaceholder.typicode.com/users/{{ inputs.parameters.userId }}"
+       method: "GET"
+
+    - name: print
+      inputs:
+        parameters:
+          - name: body
+      script:
+        image: alpine:latest
+        command: [sh, -c]
+        source: |
+          echo "{{ inputs.parameters.body }}"
+
+    - name: extract
+      inputs:
+        parameters:
+          - name: field
+          - name: body
+      outputs:
+        artifacts:
+          - name: field-file
+            path: /tmp/{{ inputs.parameters.field }}.txt
+            s3:
+              endpoint: s3-de-central.profitbricks.com:443
+              bucket: customerintelligence
+              region: eu-central-1
+              key: argo/{{ inputs.parameters.field }}.txt
+              accessKeySecret:
+                name: s3-credentials
+                key: accessKey
+              secretKeySecret:
+                name: s3-credentials
+                key: secretKey
+            archive:
+              none: {}
+      script:
+        image: python:3.11-alpine
+        command:
+          - python
+        source: |-
+          import re, json
+          fixed = re.sub(
+              r'(?<=\{|,|\n)\s*([A-Za-z_]\w*)\s*:',
+              r'"\1":',
+              '''{{ inputs.parameters.body }}'''
+            )
+          # Turn the string into a dict
+          obj = json.loads(fixed)
+          # Write the target attribute to a file
+          try:
+            with open("/tmp/{{ inputs.parameters.field }}.txt", "w", encoding="utf-8") as f:
+              f.write(obj['{{ inputs.parameters.field }}'])
+          except Exception:
+            with open("/tmp/{{ inputs.parameters.field }}.txt", "w", encoding="utf-8") as f:
+              f.write("write failed!")
