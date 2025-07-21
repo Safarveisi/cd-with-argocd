@@ -31,20 +31,22 @@ spec:
                 entrypoint: print
                 templates:
                 - name: print
-                  steps:
-                    - - name: print-body-message
+                  dag:
+                    tasks:
+                      - name: print-body-message
                         template: print-message
                         arguments:
                           parameters:
                           - name: message
                             value: "{{workflow.parameters.message}}"
-                    - - name: print-ttl-body
+                      - name: print-body-ttl
                         template: print-ttl
                         arguments:
                           parameters:
                           - name: ttl
                             value: "{{workflow.parameters.ttl}}"
-                    - - name: print-all-body
+                        dependencies: [print-body-message]
+                      - name: print-body-all
                         template: print-both
                         arguments:
                           parameters:
@@ -52,6 +54,16 @@ spec:
                               value: "{{workflow.parameters.message}}"
                             - name: ttl
                               value: "{{workflow.parameters.ttl}}"
+                        dependencies: [print-body-message, print-body-ttl]
+                      - name: print-ls
+                        template: clone-repo
+                        arguments:
+                          parameters:
+                            - name: repo-name
+                              value: "airflow-stackable"
+                            - name: ref
+                              value: "master"
+                        dependencies: [print-body-message, print-body-ttl, print-body-all]
                 - name: print-message
                   inputs:
                     parameters:
@@ -92,6 +104,20 @@ spec:
                         value: '1'
                       - name: PYTHONDONTWRITEBYTECODE
                         value: '1'
+                - name: clone-repo
+                  inputs:
+                    parameters:
+                      - name: repo-name
+                      - name: ref
+                  container:
+                    image: alpine/git:v2.49.1
+                    command: [sh, -c]
+                    args:
+                      - |
+                        git clone --depth 1 --single-branch --branch {{inputs.parameters.ref}} https://github.com/Safarveisi/{{inputs.parameters.repo-name}}.git
+                        cd {{inputs.parameters.repo-name}}
+                        ls -la
+
           parameters:
             - src:
                 dependencyName: test-dep
