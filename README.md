@@ -44,19 +44,26 @@ Think of this section as the “cherry on top” of the repository: a focused ex
 
 Please also see `/demo-argo-events/demo-event-sensor-1.yml` for a minimal running example for an Argo event. In summary:
 
-1. Event Arrival: A webhook event (see `/demo-argo-events/job-send-webhook.yml`) hits the EventSource; Sensor dependency test-dep is satisfied.
+1. Event Arrival: A webhook event (see `/demo-argo-events/job-send-webhook.yml`) hits the EventSource; Sensor dependency `test-dep` is satisfied.
 
-2. Parameter Extraction: Sensor reads body.message and body.ttl from the event payload.
+2. Parameter Extraction: Sensor reads `body.message` and `body.ttl` from the event payload.
 
-3. Workflow Instantiation: Sensor creates a Workflow (generateName: webhook-) injecting those values into spec.arguments.parameters (message, ttl).
+3. Workflow creation (`generateName: webhook‑`) with a DAG entrypoint named `print`.
 
-4. Step 1 – Message: Alpine container prints the message.
+| Order | Task (template)                            | Action                                                                                                                                                                                            |
+| ----- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | **`print-body-message`** (`print-message`) | Alpine container echoes the `message`.                                                                                                                                                            |
+| 2     | **`print-body-ttl`** (`print-ttl`)         | Echoes the `ttl`. *Depends on 1*                                                                                                                                                                  |
+| 3     | **`print-body-all`** (`print-both`)        | Python script prints both params + conditional “hook” check. *Depends on 1 & 2*                                                                                                                   |
+| 4     | **`clone-my-repo`** (`clone-repo`)         | Clones GitHub repo `airflow-stackable` (branch `master`) into `/tmp`, then uploads **`/tmp/pyproject.toml`** to S3 (`customerintelligence/argo/repo/<repo>/pyproject.toml`). *Depends on 1, 2, 3* |
+| 5     | **`print-poetry-file`** (`print-poetry`)   | Downloads the `pyproject.toml` artifact from S3 and `cat`s its contents. *Depends on 4*                                                                                                           |
 
-5. Step 2 – TTL: Alpine container prints the ttl value.
+Key Details
 
-6. Step 3 – Combined Script: Python script prints both and evaluates the "hook" substring condition.
-
-7. Completion: Workflow finishes; logs show all three outputs.
+* Artifact passing: `clone-repo` writes *pyproject.toml* as an output artifact; print-poetry-file receives it via `from: "{{tasks.clone-my-repo.outputs.artifacts.poetry-file}}"`.
+* S3 credentials: Access/secret keys are injected from the `s3-credentials` Secret.
+* Service Account: All workflow pods run under `operate-workflow-sa`.
+* DAG vs. Steps: Parallelism is controlled via explicit `dependencies`, giving a clear linear flow (1 → 2 → 3 → 4 → 5).
 
 **This example has nothing to do with the graph shown above.**
 
