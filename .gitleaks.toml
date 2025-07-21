@@ -2,4 +2,7 @@
   description = "Ignore known false positives"
 
   [[allowlist.files]]
-    path = "manifests-argo-workflows/s3_sealed_secret.yml"
+    path = [
+      "manifests-argo-workflows/s3-sealed-secret.yml",
+      "manifests-argo-events/s3-sealed-secret.yml"
+    ]

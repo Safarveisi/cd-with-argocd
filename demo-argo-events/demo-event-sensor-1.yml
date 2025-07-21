@@ -55,7 +55,7 @@ spec:
                             - name: ttl
                               value: "{{workflow.parameters.ttl}}"
                         dependencies: [print-body-message, print-body-ttl]
-                      - name: print-ls
+                      - name: clone-my-repo
                         template: clone-repo
                         arguments:
                           parameters:
@@ -64,6 +64,13 @@ spec:
                             - name: ref
                               value: "master"
                         dependencies: [print-body-message, print-body-ttl, print-body-all]
+                      - name: print-poetry-file
+                        template: print-poetry
+                        arguments:
+                          artifacts:
+                           - name: pyproject
+                             from: "{{tasks.clone-my-repo.outputs.artifacts.poetry-file}}"
+                        dependencies: [clone-my-repo]
                 - name: print-message
                   inputs:
                     parameters:
@@ -109,15 +116,39 @@ spec:
                     parameters:
                       - name: repo-name
                       - name: ref
+                  outputs:
+                    artifacts:
+                      - name: poetry-file
+                        path: /tmp/pyproject.toml
+                        s3:
+                          endpoint: s3-de-central.profitbricks.com:443
+                          bucket: customerintelligence
+                          region: eu-central-1
+                          key: argo/repo/{{inputs.parameters.repo-name}}/pyproject.toml
+                          accessKeySecret:
+                            name: s3-credentials
+                            key: accessKey
+                          secretKeySecret:
+                            name: s3-credentials
+                            key: secretKey
+                        archive:
+                          none: {}
                   container:
                     image: alpine/git:v2.49.1
                     command: [sh, -c]
                     args:
                       - |
-                        git clone --depth 1 --single-branch --branch {{inputs.parameters.ref}} https://github.com/Safarveisi/{{inputs.parameters.repo-name}}.git
-                        cd {{inputs.parameters.repo-name}}
-                        ls -la
-
+                        git clone --depth 1 --single-branch --branch {{inputs.parameters.ref}} \
+                          https://github.com/Safarveisi/{{inputs.parameters.repo-name}}.git /tmp/
+                - name: print-poetry
+                  inputs:
+                    artifacts:
+                      - name: pyproject
+                        path: /tmp/pyproject
+                  container:
+                    image: alpine:latest
+                    command: [sh, -c]
+                    args: ["cat /tmp/pyproject"]
           parameters:
             - src:
                 dependencyName: test-dep
