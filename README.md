@@ -65,6 +65,45 @@ Key Details
 * Service Account: All workflow pods run under `operate-workflow-sa`.
 * DAG vs. Steps: Parallelism is controlled via explicit `dependencies`, giving a clear linear flow (1 → 2 → 3 → 4 → 5).
 
+You can use the `argo cli` to see the status of the workflow:
+
+```bash
+argo get @latest -n argo-events
+```
+
+<details>
+<summary><strong>Click to expand raw CLI output</strong></summary>
+
+```text
+Name:                webhook-54cgn
+Namespace:           argo-events
+ServiceAccount:      unset (will run with the default ServiceAccount)
+Status:              Succeeded
+Conditions:
+ PodRunning          False
+ Completed           True
+Created:             Thu Jul 31 14:28:57 +0200 (1 minute ago)
+Started:             Thu Jul 31 14:28:57 +0200 (1 minute ago)
+Finished:            Thu Jul 31 14:29:47 +0200 (34 seconds ago)
+Duration:            50 seconds
+Progress:            5/5
+ResourcesDuration:   0s*(1 cpu),20s*(100Mi memory)
+Parameters:
+  message:           this is my first webhook
+  ttl:               60s
+
+STEP                     TEMPLATE       PODNAME                                 DURATION  MESSAGE
+ ✔ webhook-54cgn         print
+ ├─✔ print-body-message  print-message  webhook-54cgn-print-message-3981391966  5s
+ ├─✔ print-body-ttl      print-ttl      webhook-54cgn-print-ttl-1626059273      5s
+ ├─✔ print-body-all      print-both     webhook-54cgn-print-both-1421658730     5s
+ ├─✔ clone-my-repo       clone-repo     webhook-54cgn-clone-repo-2196798971     7s
+ └─✔ print-poetry-file   print-poetry   webhook-54cgn-print-poetry-693254238    6s
+```
+
+</details>
+
+
 **This example has nothing to do with the graph shown above.**
 
 You can also see some demos for Argo workflows in `/demo-argo-workflows` with some of them taken directly from the git repository for the [Argo workflows](https://github.com/argoproj/argo-workflows/tree/main/examples).
