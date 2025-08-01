@@ -50,20 +50,43 @@ Please also see `/demo-argo-events/demo-event-sensor-1.yml` for a minimal runnin
 
 3. Workflow creation (`generateName: webhook‑`) with a DAG entrypoint named `print`.
 
-| Order | Task (template)                            | Action                                                                                                                                                                                            |
-| ----- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | **`print-body-message`** (`print-message`) | Alpine container echoes the `message`.                                                                                                                                                            |
-| 2     | **`print-body-ttl`** (`print-ttl`)         | Echoes the `ttl`. *Depends on 1*                                                                                                                                                                  |
-| 3     | **`print-body-all`** (`print-both`)        | Python script prints both params + conditional “hook” check. *Depends on 1 & 2*                                                                                                                   |
-| 4     | **`clone-my-repo`** (`clone-repo`)         | Clones GitHub repo `airflow-stackable` (branch `master`) into `/tmp`, then uploads **`/tmp/pyproject.toml`** to S3 (`customerintelligence/argo/repo/<repo>/pyproject.toml`). *Depends on 1, 2, 3* |
-| 5     | **`print-poetry-file`** (`print-poetry`)   | Downloads the `pyproject.toml` artifact from S3 and `cat`s its contents. *Depends on 4*                                                                                                           |
+| Order | Task (template)                                  | Action & Dependencies                                                                                                                                                                                                                                    |
+| ----: | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|     1 | **`print-body-message`** (`print-message`)       | Alpine container echoes the **`message`** (`"The message is: {{inputs.parameters.message}}"`).                                                                                                                                                           |
+|     2 | **`print-body-ttl`** (`print-ttl`)               | Echoes the **`ttl`** (`"This message lives for {{inputs.parameters.ttl}}"`). **Depends on 1.**                                                                                                                                                           |
+|     3 | **`print-body-all`** (`print-both`)              | Python (3.11-alpine) prints both params and does a simple `"hook"` substring check. **Depends on 1 & 2.**                                                                                                                                                |
+|     4 | **`clone-my-repo`** (`clone-repo`)               | Clones GitHub repo **`Safarveisi/airflow-stackable`** (branch **`master`**) into `/tmp/`, then **outputs** `/tmp/pyproject.toml` as an artifact and **uploads to S3** at `customerintelligence/argo/repo/<repo>/pyproject.toml`. **Depends on 1, 2, 3.** |
+|     5 | **`print-poetry-file`** (`print-poetry`)         | **Downloads the artifact** from step 4 (`from: "{{tasks.clone-my-repo.outputs.artifacts.poetry-file}}"`) to **`/tmp/pyproject`** (input path of this template) and `cat`s it. **Depends on 4.**                                                          |
+|     6 | **`mlflow-connect`** (`list-mlflow-experiments`) | Runs the container `ciaa/mlflow-connect:latest` to list MLflow experiments (connects via its internal config/env). **Depends on 1.**                                                                                                                     |
+|     7 | **`snowflake-connect`** (`snowflake-table`)      | Runs `ciaa/snowflake-connect:latest`; Snowflake creds injected from Kubernetes Secret `snowflake-credentials` (keys: `SNOWFLAKE_USER`, `SNOWFLAKE_PASSWORD`, `SNOWFLAKE_ACCOUNT`). **Depends on 1.**                                                     |
+                                                                                                     |
+Parallelism note: after 1, tasks 2, 6, and 7 may run in parallel; 3 waits for 1 & 2; 4 waits for 1, 2, 3; 5 waits for 4.
 
-Key Details
+#### Key Details
 
-* Artifact passing: `clone-repo` writes *pyproject.toml* as an output artifact; print-poetry-file receives it via `from: "{{tasks.clone-my-repo.outputs.artifacts.poetry-file}}"`.
-* S3 credentials: Access/secret keys are injected from the `s3-credentials` Secret.
-* Service Account: All workflow pods run under `operate-workflow-sa`.
-* DAG vs. Steps: Parallelism is controlled via explicit `dependencies`, giving a clear linear flow (1 → 2 → 3 → 4 → 5).
+* Triggering: An Argo Events Sensor (`Sensor` named `webhook` in namespace `argo-events`) creates the `Workflow` on events from `eventSourceName: webhook`, `eventName: example`.
+
+* Parameters: `message` and `ttl` are mapped from the webhook payload (`body.message`, `body.ttl`) into the Workflow’s `spec.arguments`.
+
+* Entrypoint & Type: `entrypoint: print` uses a DAG with explicit `dependencies` for ordering and parallelism.
+
+* Artifact passing:
+
+  * `clone-repo` outputs artifact `poetry-file` at path `/tmp/pyproject.toml` and uploads to S3 (endpoint `s3-de-central.profitbricks.com:443`, bucket `customerintelligence`, key `argo/repo/{{inputs.parameters.repo-name}}/pyproject.toml`).
+
+  * `print-poetry-file` inputs artifact `pyproject` and places it at `/tmp/pyproject`, then prints it.
+
+* S3 credentials: Provided via Secret `s3-credentials` (`accessKey`, `secretKey`) referenced in the output artifact config of `clone-repo`.
+
+* Snowflake credentials: The `snowflake-table` template reads env vars from Secret `snowflake-credentials` (`SNOWFLAKE_USER`, `SNOWFLAKE_PASSWORD`, `SNOWFLAKE_ACCOUNT`).
+
+* Images:
+
+  * Echo steps use `alpine:latest`; Python step uses `python:3.11-alpine`; git clone uses `alpine/git:v2.49.1`.
+
+  * Internal service connectors: `ciaa/mlflow-connect:latest`, `ciaa/snowflake-connect:latest`.
+
+* ServiceAccount: The Sensor runs as `operate-workflow-sa`. (The generated Workflow does not set `serviceAccountName`, so Workflow pods will use the namespace default unless you add one to the Workflow spec.)
 
 You can use the `argo cli` to see the status of the workflow:
 
@@ -75,30 +98,32 @@ argo get @latest -n argo-events
 <summary><strong>Click to expand raw CLI output</strong></summary>
 
 ```text
-Name:                webhook-54cgn
+Name:                webhook-jkvzh
 Namespace:           argo-events
 ServiceAccount:      unset (will run with the default ServiceAccount)
 Status:              Succeeded
 Conditions:
  PodRunning          False
  Completed           True
-Created:             Thu Jul 31 14:28:57 +0200 (1 minute ago)
-Started:             Thu Jul 31 14:28:57 +0200 (1 minute ago)
-Finished:            Thu Jul 31 14:29:47 +0200 (34 seconds ago)
+Created:             Fri Aug 01 14:08:02 +0200 (14 minutes ago)
+Started:             Fri Aug 01 14:08:02 +0200 (14 minutes ago)
+Finished:            Fri Aug 01 14:08:52 +0200 (14 minutes ago)
 Duration:            50 seconds
-Progress:            5/5
-ResourcesDuration:   0s*(1 cpu),20s*(100Mi memory)
+Progress:            7/7
+ResourcesDuration:   0s*(1 cpu),37s*(100Mi memory)
 Parameters:
   message:           this is my first webhook
   ttl:               60s
 
-STEP                     TEMPLATE       PODNAME                                 DURATION  MESSAGE
- ✔ webhook-54cgn         print
- ├─✔ print-body-message  print-message  webhook-54cgn-print-message-3981391966  5s
- ├─✔ print-body-ttl      print-ttl      webhook-54cgn-print-ttl-1626059273      5s
- ├─✔ print-body-all      print-both     webhook-54cgn-print-both-1421658730     5s
- ├─✔ clone-my-repo       clone-repo     webhook-54cgn-clone-repo-2196798971     7s
- └─✔ print-poetry-file   print-poetry   webhook-54cgn-print-poetry-693254238    6s
+STEP                     TEMPLATE                 PODNAME                                           DURATION  MESSAGE
+ ✔ webhook-jkvzh         print
+ ├─✔ print-body-message  print-message            webhook-jkvzh-print-message-177711544             6s
+ ├─✔ mlflow-connect      list-mlflow-experiments  webhook-jkvzh-list-mlflow-experiments-2843226054  8s
+ ├─✔ print-body-ttl      print-ttl                webhook-jkvzh-print-ttl-4108477847                5s
+ ├─✔ snowflake-connect   snowflake-table          webhook-jkvzh-snowflake-table-1032547547          13s
+ ├─✔ print-body-all      print-both               webhook-jkvzh-print-both-66352536                 4s
+ ├─✔ clone-my-repo       clone-repo               webhook-jkvzh-clone-repo-227934185                8s
+ └─✔ print-poetry-file   print-poetry             webhook-jkvzh-print-poetry-3247567644             6s
 ```
 
 </details>

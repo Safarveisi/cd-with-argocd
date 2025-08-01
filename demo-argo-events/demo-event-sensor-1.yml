@@ -39,6 +39,7 @@ spec:
                           parameters:
                           - name: message
                             value: "{{workflow.parameters.message}}"
+
                       - name: print-body-ttl
                         template: print-ttl
                         arguments:
@@ -46,6 +47,7 @@ spec:
                           - name: ttl
                             value: "{{workflow.parameters.ttl}}"
                         dependencies: [print-body-message]
+
                       - name: print-body-all
                         template: print-both
                         arguments:
@@ -55,6 +57,7 @@ spec:
                             - name: ttl
                               value: "{{workflow.parameters.ttl}}"
                         dependencies: [print-body-message, print-body-ttl]
+
                       - name: clone-my-repo
                         template: clone-repo
                         arguments:
@@ -64,6 +67,7 @@ spec:
                             - name: ref
                               value: "master"
                         dependencies: [print-body-message, print-body-ttl, print-body-all]
+
                       - name: print-poetry-file
                         template: print-poetry
                         arguments:
@@ -71,6 +75,15 @@ spec:
                            - name: pyproject
                              from: "{{tasks.clone-my-repo.outputs.artifacts.poetry-file}}"
                         dependencies: [clone-my-repo]
+
+                      - name: mlflow-connect
+                        template: list-mlflow-experiments
+                        dependencies: [print-body-message]
+
+                      - name: snowflake-connect
+                        template: snowflake-table
+                        dependencies: [print-body-message]
+
                 - name: print-message
                   inputs:
                     parameters:
@@ -80,6 +93,7 @@ spec:
                     imagePullPolicy: IfNotPresent
                     command: [sh, -c]
                     args: ["echo 'The message is: {{inputs.parameters.message}}'"]
+
                 - name: print-ttl
                   inputs:
                     parameters:
@@ -89,6 +103,7 @@ spec:
                     imagePullPolicy: IfNotPresent
                     command: [sh, -c]
                     args: ["echo 'This message lives for {{inputs.parameters.ttl}}'"]
+
                 - name: print-both
                   inputs:
                     parameters:
@@ -111,6 +126,7 @@ spec:
                         value: '1'
                       - name: PYTHONDONTWRITEBYTECODE
                         value: '1'
+
                 - name: clone-repo
                   inputs:
                     parameters:
@@ -140,6 +156,7 @@ spec:
                       - |
                         git clone --depth 1 --single-branch --branch {{inputs.parameters.ref}} \
                           https://github.com/Safarveisi/{{inputs.parameters.repo-name}}.git /tmp/
+
                 - name: print-poetry
                   inputs:
                     artifacts:
@@ -149,6 +166,34 @@ spec:
                     image: alpine:latest
                     command: [sh, -c]
                     args: ["cat /tmp/pyproject"]
+
+                # Connecting to internal services (mlflow and snowflake)
+                - name: list-mlflow-experiments
+                  container:
+                    image: ciaa/mlflow-connect:latest
+                    imagePullPolicy: Always
+
+                - name: snowflake-table
+                  container:
+                    image: ciaa/snowflake-connect:latest
+                    imagePullPolicy: Always
+                    env:
+                      - name: SNOWFLAKE_USER
+                        valueFrom:
+                          secretKeyRef:
+                            name: snowflake-credentials
+                            key: SNOWFLAKE_USER
+                      - name: SNOWFLAKE_PASSWORD
+                        valueFrom:
+                          secretKeyRef:
+                            name: snowflake-credentials
+                            key: SNOWFLAKE_PASSWORD
+                      - name: SNOWFLAKE_ACCOUNT
+                        valueFrom:
+                          secretKeyRef:
+                            name: snowflake-credentials
+                            key: SNOWFLAKE_ACCOUNT
+
           parameters:
             - src:
                 dependencyName: test-dep
