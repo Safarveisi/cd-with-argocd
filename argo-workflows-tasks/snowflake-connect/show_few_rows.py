@@ -2,17 +2,17 @@ import os
 
 import snowflake.connector as snow
 
-account = os.getenv("SNOWFLAKE_ACCOUNT", "my_account_name")
-user = os.getenv("SNOWFLAKE_USER", "my_user_name")
-password = os.getenv("SNOWFLAKE_PASSWORD", "my_password")
+ACCOUNT = os.getenv("SNOWFLAKE_ACCOUNT", "my_account_name")
+USER = os.getenv("SNOWFLAKE_USER", "my_user_name")
+PASSWORD = os.getenv("SNOWFLAKE_PASSWORD", "my_password")
 
-print(f"Connecting to Snowflake account: {account} as user: {user}")
+print(f"Connecting to Snowflake account: {ACCOUNT} as user: {USER}")
 
 # Create a connection to Snowflake
 connection = snow.connect(
-    account=account,
-    user=user,
-    password=password,
+    account=ACCOUNT,
+    user=USER,
+    password=PASSWORD,
     warehouse="load_wh",
     database="fraud",
     schema="public",
