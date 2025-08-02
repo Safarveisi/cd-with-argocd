@@ -118,6 +118,11 @@ jobs:
             - name: Set up Docker Buildx
               uses: docker/setup-buildx-action@v3
 
+            - name: Run build check
+              run: |
+                # This validates the Dockerfile and the build configuration
+                docker buildx build --check .
+
             - name: Local image smoke test (build & create container)
               run: |
                 IMG_TAG_TEST="ciaa/demo_app:${{ needs.version-check.outputs.project_version }}-test"

@@ -19,7 +19,7 @@ spec:
         runAsUser: 10001  # This should match your Dockerfile UID
       containers:
         - name: alpine
-          image: ciaa/demo_app:v1.7.0 # LATEST_IMAGE_TAG
+          image: ciaa/demo_app:v1.8.0 # LATEST_IMAGE_TAG
           imagePullPolicy: IfNotPresent
           env:
             - name: STARTUP_MESSAGE
