@@ -118,13 +118,22 @@ jobs:
             - name: Set up Docker Buildx
               uses: docker/setup-buildx-action@v3
 
+            - name: Local image smoke test (build & create container)
+              run: |
+                IMG_TAG_TEST="ciaa/demo_app:${{ needs.version-check.outputs.project_version }}-test"
+                # Build locally (loads the single-platform build result to docker images)
+                docker buildx build --platform linux/amd64 --load --tag "$IMG_TAG_TEST" .
+                # This is a smoke test to ensure the image can be built and run
+                docker run --rm "$IMG_TAG_TEST"
+
             - name: Build and push
               id: docker-image-build-and-push
               continue-on-error: true
               run: |
-                stdout=$(docker buildx build --platform linux/amd64 \
-                --tag  ciaa/demo_app:${{ needs.version-check.outputs.project_version }} \
-                --push . 2>&1)
+                IMG_TAG="ciaa/demo_app:${{ needs.version-check.outputs.project_version }}"
+                # Build and push the image to Docker Hub
+                # Capture stdout to output variable
+                stdout=$(docker buildx build --platform linux/amd64 --tag "$IMG_TAG" --push . 2>&1)
                 echo "$stdout"
                 # Save full stdout
                 echo "stdout<<EOF" >> $GITHUB_OUTPUT
